@@ -1,0 +1,13 @@
+service: email-service
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+
+plugins:
+  - serverless-finch
+ 
+custom:
+  client:
+    bucketName: tvs-contactotron
+    distributionFolder: build/

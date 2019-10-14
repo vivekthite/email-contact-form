@@ -1,0 +1,66 @@
+service: email-service
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  environment:
+    CONTACT_TOPIC_ARN:
+      Ref: ContactFormSNSTopic
+    CONTACT_TABLE_NAME:
+      Ref: ContactFormTable 
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - "sns:publish"
+      Resource: 
+        - Ref: ContactFormSNSTopic  
+        
+    - Effect: 'Allow'
+      Action: 
+        - "dynamodb:putItem"
+      Resource:
+        - Fn::GetAtt:
+            - ContactFormTable
+            - Arn      
+
+functions:
+  submitContactForm:
+    handler: handler.submitContactForm
+    events:
+      - http:
+          path: submitContactForm
+          method: post
+          cors: true
+
+  saveContactMessage:
+    handler: handler.saveContactMessage
+    events:      
+      - sns:
+          arn:
+            Ref: ContactFormSNSTopic
+          topicName: ContactFormSNSTopic-${self:provider.stage}           
+
+resources:
+  Resources:
+    ContactFormSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: "ContactForm SNS Topic"        
+        TopicName: ContactFormSNSTopic-${self:provider.stage}  
+        
+    ContactFormTable:
+      Type: AWS::DynamoDB::Table
+      Properties: 
+        AttributeDefinitions: 
+          - 
+            AttributeName: id
+            AttributeType: S  
+        KeySchema: 
+          - 
+            AttributeName: id
+            KeyType: HASH      
+        ProvisionedThroughput: 
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: contact_form_message
+        
